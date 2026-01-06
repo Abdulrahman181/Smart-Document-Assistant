@@ -49,15 +49,23 @@ User Question → Retriever → LLM → Answer
 
 chat-with-your-documents/
 ├── app.py
+
 ├── ingest.py
+
 ├── requirements.txt
+
 ├── README.md
+
 ├── .gitignore
+
 └── data/
 
 ---
+# 💻 Authors
+  - Abdul Rahman Ahmed 
 
+  - abdulrahmannassar202@gmail.com
 
-
-
+# 📌 Project link
+  - https://github.com/Abdulrahman181/Smart-Document-Assistant
 
