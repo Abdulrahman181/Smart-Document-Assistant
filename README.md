@@ -48,6 +48,7 @@ User Question → Retriever → LLM → Answer
 ## Project Structure
 
 chat-with-your-documents/
+
 ├── app.py
 
 ├── ingest.py
