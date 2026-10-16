@@ -14,8 +14,10 @@ run or quality result is claimed without those artifacts.
 
 The notebook documents the ingestion path. It expects PDFs in `data/` by
 default (or `DATA_DIR`), writes `faiss_index_arxiv/`, and uses deterministic
-sorted file traversal. Download the dataset separately and place the PDFs in
-that directory before running ingestion.
+sorted file traversal (including `.PDF` files). Download the dataset separately
+and place the PDFs in that directory before running ingestion. Relative notebook
+paths are rooted at `PROJECT_ROOT` (which defaults to the directory where the
+notebook was started); set it explicitly when launching Jupyter from elsewhere.
 
 ## Setup
 
@@ -40,11 +42,17 @@ The app defaults to these paths relative to the repository:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
+| `PROJECT_ROOT` | notebook working directory | Notebook base for relative paths |
+| `DATA_DIR` | `data/` | PDF input directory for notebook ingestion |
+| `MAX_FILES` | `270` | Positive upper bound on PDFs processed |
 | `FAISS_INDEX_DIR` | `faiss_index_arxiv/` | Directory containing `index.faiss` and `index.pkl` |
 | `LLM_MODEL_DIR` | `models/llama-2-7b-chat/` | Directory containing the GGUF model |
 | `LLM_MODEL_FILE` | `llama-2-7b-chat.Q4_K_M.gguf` | Model filename |
 | `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Sentence-Transformers model |
 | `EMBEDDING_DEVICE` | `cpu` | Embedding device |
+| `LLM_MODEL_TYPE` | `llama` | CTransformers model family |
+| `LLM_MAX_NEW_TOKENS` | `512` | Positive maximum generated tokens |
+| `LLM_CONTEXT_LENGTH` | `2048` | Positive model context length |
 
 Relative paths are resolved from the repository, not from the current working
 directory. The application shows a clear setup error instead of crashing when
@@ -54,13 +62,19 @@ this project or another trusted source.
 
 ## Validation and limitations
 
-Run the dependency-free static checks with:
+Run the static and helper checks with:
 
 ```bash
 python -m unittest discover -s tests -v
 python -m compileall -q app.py
 ruff check app.py chat-with-your-documents-project.ipynb tests
 ```
+
+The notebook is intentionally clean: code cells have no captured outputs or
+execution counts, and stale widget/Kaggle/Papermill metadata is removed. The
+ingestion cells fail early for invalid limits, missing PDFs, or PDFs that yield
+no usable pages; model and index files are validated before use. The application
+also reports a per-request error instead of terminating the Streamlit session.
 
 This is a retrieval-and-generation application, not a supervised training
 pipeline: there is no label split, fitted predictor, or leakage-safe benchmark
@@ -77,6 +91,7 @@ app.py                                  Streamlit application
 chat-with-your-documents-project.ipynb  Portable ingestion/demo notebook
 requirements.txt                        Runtime dependencies
 tests/test_static_validation.py         Dependency-free static checks
+tests/test_app_helpers.py                Focused application helper tests
 ```
 
 ## Authors

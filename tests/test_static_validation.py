@@ -21,6 +21,9 @@ class StaticValidationTests(unittest.TestCase):
             )
         )
         self.assertGreater(len(notebook.get("cells", [])), 0)
+        self.assertNotIn("widgets", notebook.get("metadata", {}))
+        self.assertNotIn("kaggle", notebook.get("metadata", {}))
+        self.assertNotIn("papermill", notebook.get("metadata", {}))
         for cell in notebook["cells"]:
             if cell.get("cell_type") == "code":
                 ast.parse("".join(cell.get("source", [])))
@@ -33,8 +36,17 @@ class StaticValidationTests(unittest.TestCase):
         )
         self.assertNotIn("/kaggle/", notebook_text)
         self.assertNotIn("!pip install", notebook_text)
+        self.assertNotIn("langchain.text_splitter", notebook_text)
+        self.assertNotIn("langchain.prompts", notebook_text)
         self.assertIn("DATA_DIR", notebook_text)
         self.assertIn("LLM_MODEL_DIR", notebook_text)
+        notebook = json.loads(notebook_text)
+        code_text = "\n".join(
+            "".join(cell.get("source", []))
+            for cell in notebook.get("cells", [])
+            if cell.get("cell_type") == "code"
+        )
+        self.assertIn('path.suffix.lower() == ".pdf"', code_text)
 
     def test_runtime_dependencies_match_imported_stack(self) -> None:
         requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
@@ -47,6 +59,7 @@ class StaticValidationTests(unittest.TestCase):
             "sentence-transformers",
             "ctransformers",
             "pypdf",
+            "jupyterlab",
         ):
             self.assertIn(package, requirements)
 

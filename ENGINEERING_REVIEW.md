@@ -86,3 +86,69 @@ installed, and the repository does not contain PDFs, a generated FAISS index,
 or GGUF weights. The static checks validate syntax, structure, portability, and
 repository hygiene only; install `requirements.txt` and provide the documented
 artifacts before running ingestion or the Streamlit app.
+
+## Second Senior Review
+
+### Scope and residual defects found
+
+The second pass re-inspected every tracked file, the complete notebook JSON and
+code cells, the Git history/diff, dependency declarations, tests, and generated
+repository state. It found no fabricated data, metrics, credentials, or tracked
+model/data artifacts. The following real residual issues were fixed:
+
+1. **Configuration-sensitive resource caches were stale.** The Streamlit cache
+   keys did not include embedding device, model type, token limit, or context
+   length even though those values came from environment variables. Loader
+   signatures now receive these settings explicitly, so changing configuration
+   cannot silently reuse an incompatible resource.
+2. **Invalid configuration failed late or silently.** Positive-integer parsing
+   now rejects malformed or non-positive token/context settings. Model filenames
+   must be plain filenames inside the configured model directory, preventing
+   accidental path traversal and making the artifact contract explicit.
+3. **Interactive inference could terminate the UI session.** Per-question chain
+   failures are now converted to a visible assistant error message while setup
+   failures remain diagnosable in the UI.
+4. **Source formatting assumed complete LangChain metadata.** Empty answers and
+   documents with missing/`None` metadata are handled safely; duplicate source
+   references remain deterministic and de-duplicated.
+5. **Notebook ingestion missed uppercase extensions and accepted bad limits.**
+   PDF discovery is case-insensitive and sorted by relative path, `MAX_FILES`
+   and model limits are validated, and empty post-cleaning corpora fail with an
+   explicit message instead of reaching FAISS with invalid input.
+6. **Notebook imports and paths were not aligned with the declared stack.**
+   Notebook code now uses `langchain_core.prompts` and
+   `langchain_text_splitters`, resolves relative paths through `PROJECT_ROOT`,
+   validates model filenames, and creates the output directory explicitly.
+7. **Dependency ranges allowed unreviewed API drift and notebook execution was
+   undocumented.** LangChain packages are bounded to the reviewed 0.3 API line,
+   CTransformers is bounded below 0.3, and `jupyterlab` is declared.
+8. **Stale notebook metadata remained.** Widget state and Kaggle/Papermill
+   execution metadata were removed in addition to clearing outputs and execution
+   counts. The notebook now contains only portable kernel/language metadata.
+
+### Second-review validation
+
+- `python3 -m unittest discover -s tests -v` — **7 tests passed**.
+- `python3 -m compileall -q app.py tests` — **passed**.
+- `ruff check app.py tests` — **passed**.
+- Notebook JSON parsing and AST parsing for every code cell — **passed**.
+- Notebook output/execution/metadata audit — **no outputs, no execution counts,
+  no widgets/Kaggle/Papermill state**.
+- `git diff --check` — **passed**.
+- A full RAG run was **not claimed**: the repository still has no PDFs, FAISS
+  index, embedding cache, or GGUF weights, and the current environment lacks
+  `langchain-community`, FAISS, and CTransformers. The installed package set was
+  inspected for import compatibility where available.
+
+### Remaining risks
+
+- `FAISS.load_local(..., allow_dangerous_deserialization=True)` remains required
+  by the LangChain API and must only be used with a trusted, project-generated
+  index; there is no cryptographic artifact provenance check.
+- There is still no fixed, source-disjoint benchmark or human-labeled evaluation
+  set, so retrieval quality, answer groundedness, and leakage-safe metrics remain
+  unmeasured. The notebook overlap value is explicitly only a token-overlap
+  diagnostic.
+- Native/large runtime dependencies and model weights were not installed or
+  executed in this review; platform-specific CTransformers/FAISS installation and
+  model-format compatibility require validation in the target deployment.
